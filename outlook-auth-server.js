@@ -25,7 +25,8 @@ const AUTH_CONFIG = {
     'Calendars.ReadWrite',
     'Contacts.Read'
   ],
-  tokenStorePath: path.join(process.env.HOME || process.env.USERPROFILE, '.outlook-mcp-tokens.json')
+  // tokenStorePath: path.join(process.env.HOME || process.env.USERPROFILE, '.outlook-mcp-tokens.json')
+  tokenStorePath: process.env.TOKEN_STORE_PATH || '/data/outlook-mcp-tokens.json'
 };
 
 // Create HTTP server
