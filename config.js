@@ -7,6 +7,11 @@ const os = require('os');
 // Ensure we have a home directory path even if process.env.HOME is undefined
 const homeDir = process.env.HOME || process.env.USERPROFILE || os.homedir() || '/tmp';
 
+// Allow explicit token path (preferred for Docker / Dokploy)
+const tokenPath =
+  process.env.OUTLOOK_TOKEN_PATH ||
+  path.join(homeDir, '.outlook-mcp-tokens.json');
+
 module.exports = {
   // Server information
   SERVER_NAME: "outlook-assistant",
@@ -20,8 +25,8 @@ module.exports = {
     clientId: process.env.OUTLOOK_CLIENT_ID || '',
     clientSecret: process.env.OUTLOOK_CLIENT_SECRET || '',
     redirectUri: 'http://localhost:3333/auth/callback',
-    scopes: ['Mail.Read', 'Mail.ReadWrite', 'Mail.Send', 'User.Read', 'Calendars.Read', 'Calendars.ReadWrite'],
-    tokenStorePath: path.join(homeDir, '.outlook-mcp-tokens.json'),
+    scopes: ['Mail.Read', 'Mail.ReadWrite', 'User.Read', 'Calendars.Read', 'Calendars.ReadWrite'],
+    tokenStorePath: tokenPath,
     authServerUrl: 'http://localhost:3333'
   },
   
