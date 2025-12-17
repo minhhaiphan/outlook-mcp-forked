@@ -16,12 +16,11 @@ console.log('Starting Outlook Authentication Server');
 const AUTH_CONFIG = {
   clientId: process.env.MS_CLIENT_ID || '', // Set your client ID as an environment variable
   clientSecret: process.env.MS_CLIENT_SECRET || '', // Set your client secret as an environment variable
-  redirectUri: 'http://localhost:3333/auth/callback',
+  redirectUri: process.env.MS_REDIRECT_URI,
   scopes: [
     'offline_access',
     'User.Read',
     'Mail.Read',
-    'Mail.Send',
     'Calendars.Read',
     'Calendars.ReadWrite',
     'Contacts.Read'
