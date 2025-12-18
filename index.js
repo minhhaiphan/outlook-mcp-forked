@@ -163,7 +163,12 @@ for (const tool of TOOLS) {
   if (!tool?.name || !tool?.handler) continue;
 
   // McpServer.tool(name, description, inputSchema, handler)
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (args) => {
+  // The MCP SDK passes parameters as the first argument, context as second
+  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (args, context) => {
+    console.log(`=== Tool Call: ${tool.name} ===`);
+    console.log('Tool args received:', JSON.stringify(args, null, 2));
+    console.log('Tool context received:', JSON.stringify(context, null, 2));
+    
     return await tool.handler(args || {});
   });
 }
