@@ -37,10 +37,11 @@ async function handleCreateEvent(args) {
       attendees: attendees?.map(email => ({ emailAddress: { address: email }, type: "required" })),
       body: { contentType: "HTML", content: body || "" }
     };
-
+    console.log(bodyContent, "bodyContent");
+    
     // Make API call
     const response = await callGraphAPI(accessToken, 'POST', endpoint, bodyContent);
-
+   console.log(response, "response");
     return {
       content: [{
         type: "text",
