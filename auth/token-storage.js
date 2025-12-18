@@ -11,7 +11,7 @@ class TokenStorage {
       clientId: process.env.MS_CLIENT_ID,
       clientSecret: process.env.MS_CLIENT_SECRET,
       redirectUri: process.env.MS_REDIRECT_URI || 'http://localhost:3333/auth/callback',
-      scopes: (process.env.MS_SCOPES || 'offline_access User.Read Mail.Read').split(' '),
+      scopes: config.AUTH_CONFIG.scopes,
       tokenEndpoint: process.env.MS_TOKEN_ENDPOINT || 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
       refreshTokenBuffer: 5 * 60 * 1000, // 5 minutes buffer for token refresh
       ...config // Allow overriding default config
@@ -19,7 +19,7 @@ class TokenStorage {
     this.tokens = null;
     this._loadPromise = null;
     this._refreshPromise = null;
-
+    console.log(scopes,"scopes")
     if (!this.config.clientId || !this.config.clientSecret) {
       console.warn("TokenStorage: MS_CLIENT_ID or MS_CLIENT_SECRET is not configured. Token operations might fail.");
     }
