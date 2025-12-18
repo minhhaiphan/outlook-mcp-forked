@@ -5,6 +5,31 @@ const https = require('https');
 const config = require('../config');
 const mockData = require('./mock-data');
 
+const TokenStorage = require('../auth/token-storage'); // adjust path to where TokenStorage is
+const tokenStorage = new TokenStorage({
+  tokenStorePath: process.env.OUTLOOK_TOKEN_PATH || config.AUTH_CONFIG.tokenStorePath,
+  clientId: config.AUTH_CONFIG.clientId,
+  clientSecret: config.AUTH_CONFIG.clientSecret,
+  tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+  scopes: config.AUTH_CONFIG.scopes,
+  redirectUri: config.AUTH_CONFIG.redirectUri,
+});
+console.log(tokenStorage, "tokenStorage")
+
+async function callGraphAPIWithRefresh(accessToken, method, path, data=null, queryParams={}) {
+  try {
+    return await callGraphAPI(accessToken, method, path, data, queryParams);
+  } catch (err) {
+    if (err.statusCode === 401) {
+      console.error('[AUTH] 401 from Graph, attempting refresh + retry once...');
+      const fresh = await tokenStorage.getValidAccessToken(); // this triggers refresh if expired
+      if (!fresh) throw new Error('UNAUTHORIZED'); // refresh failed or no refresh_token
+      return await callGraphAPI(fresh, method, path, data, queryParams);
+    }
+    throw err;
+  }
+}
+
 /**
  * Makes a request to the Microsoft Graph API
  * @param {string} accessToken - The access token for authentication
@@ -54,7 +79,7 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
         
         queryString = params.toString();
         
-        // Add filter parameter separately with proper encoding
+        // Add filter parameter separately with proper encoding/
         if (filter) {
           if (queryString) {
             queryString += `&$filter=${encodeURIComponent(filter)}`;
