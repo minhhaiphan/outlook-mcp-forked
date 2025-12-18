@@ -167,17 +167,44 @@ for (const tool of TOOLS) {
 
   console.error(`Registering tool: ${tool.name}`);
   
-  // The MCP SDK tool handler signature: (request, extra) => result
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (request, extra) => {
+  // The MCP SDK tool handler might use different signatures
+  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (...allArgs) => {
     console.error(`=== Tool Call: ${tool.name} ===`);
-    console.error('Tool request:', JSON.stringify(request, null, 2));
-    console.error('Tool extra:', JSON.stringify(extra, null, 2));
+    console.error('All arguments received:');
+    allArgs.forEach((arg, index) => {
+      console.error(`Arg ${index}:`, JSON.stringify(arg, null, 2));
+    });
     
-    // The parameters should be in the request object directly
-    const args = request || {};
-    console.error('Using request as args:', JSON.stringify(args, null, 2));
+    // Try to find the actual parameters in different locations
+    let params = {};
     
-    return await tool.handler(args);
+    // Check each argument for tool parameters
+    for (let i = 0; i < allArgs.length; i++) {
+      const arg = allArgs[i];
+      if (arg && typeof arg === 'object') {
+        // Look for properties that look like tool parameters
+        if (arg.subject || arg.body || arg.to) {
+          console.error(`Found tool parameters in arg ${i}:`, arg);
+          params = arg;
+          break;
+        }
+        // Check if parameters are nested
+        if (arg.arguments && typeof arg.arguments === 'object') {
+          console.error(`Found nested parameters in arg ${i}.arguments:`, arg.arguments);
+          params = arg.arguments;
+          break;
+        }
+        if (arg.params && typeof arg.params === 'object') {
+          console.error(`Found nested parameters in arg ${i}.params:`, arg.params);
+          params = arg.params;
+          break;
+        }
+      }
+    }
+    
+    console.error('Final params to pass to handler:', JSON.stringify(params, null, 2));
+    
+    return await tool.handler(params);
   });
 }
 
