@@ -19,7 +19,7 @@ class TokenStorage {
     this.tokens = null;
     this._loadPromise = null;
     this._refreshPromise = null;
-    console.log(scopes,"scopes")
+  
     if (!this.config.clientId || !this.config.clientSecret) {
       console.warn("TokenStorage: MS_CLIENT_ID or MS_CLIENT_SECRET is not configured. Token operations might fail.");
     }
