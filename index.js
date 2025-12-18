@@ -53,95 +53,96 @@ const TOOLS = [
 // ---- MCP server (NEW: use McpServer and register tools) ----
 const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_VERSION });
 
-// Handle all requests
-// server.fallbackRequestHandler = async (request) => {
-//   try {
-//     const { method, params, id } = request;
-//     console.error(`REQUEST: ${method} [${id}]`);
+// Handle all requests using fallback handler
+server.fallbackRequestHandler = async (request) => {
+  try {
+    const { method, params, id } = request;
+    console.error(`REQUEST: ${method} [${id}]`);
     
-//     // Initialize handler
-//     if (method === "initialize") {
-//       console.error(`INITIALIZE REQUEST: ID [${id}]`);
-//       return {
-//         protocolVersion: "2024-11-05",
-//         capabilities: { 
-//           tools: TOOLS.reduce((acc, tool) => {
-//             acc[tool.name] = {};
-//             return acc;
-//           }, {})
-//         },
-//         serverInfo: { name: config.SERVER_NAME, version: config.SERVER_VERSION }
-//       };
-//     }
+    // Initialize handler
+    if (method === "initialize") {
+      console.error(`INITIALIZE REQUEST: ID [${id}]`);
+      return {
+        protocolVersion: "2024-11-05",
+        capabilities: { 
+          tools: TOOLS.reduce((acc, tool) => {
+            acc[tool.name] = {};
+            return acc;
+          }, {})
+        },
+        serverInfo: { name: config.SERVER_NAME, version: config.SERVER_VERSION }
+      };
+    }
     
-//     // Tools list handler
-//     if (method === "tools/list") {
-//       console.error(`TOOLS LIST REQUEST: ID [${id}]`);
-//       console.error(`TOOLS COUNT: ${TOOLS.length}`);
-//       console.error(`TOOLS NAMES: ${TOOLS.map(t => t.name).join(', ')}`);
+    // Tools list handler
+    if (method === "tools/list") {
+      console.error(`TOOLS LIST REQUEST: ID [${id}]`);
+      console.error(`TOOLS COUNT: ${TOOLS.length}`);
+      console.error(`TOOLS NAMES: ${TOOLS.map(t => t.name).join(', ')}`);
       
-//       return {
-//         tools: TOOLS.map(tool => ({
-//           name: tool.name,
-//           description: tool.description,
-//           inputSchema: tool.inputSchema
-//         }))
-//       };
-//     }
+      return {
+        tools: TOOLS.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema
+        }))
+      };
+    }
     
-//     // Required empty responses for other capabilities
-//     if (method === "resources/list") return { resources: [] };
-//     if (method === "prompts/list") return { prompts: [] };
+    // Required empty responses for other capabilities
+    if (method === "resources/list") return { resources: [] };
+    if (method === "prompts/list") return { prompts: [] };
     
-//     // Tool call handler
-//     if (method === "tools/call") {
-//       try {
-//         const { name, arguments: args = {} } = params || {};
+    // Tool call handler
+    if (method === "tools/call") {
+      try {
+        const { name, arguments: args = {} } = params || {};
         
-//         console.error(`TOOL CALL: ${name}`);
+        console.error(`TOOL CALL: ${name}`);
+        console.error(`TOOL ARGS:`, JSON.stringify(args, null, 2));
         
-//         // Find the tool handler
-//         const tool = TOOLS.find(t => t.name === name);
+        // Find the tool handler
+        const tool = TOOLS.find(t => t.name === name);
         
-//         if (tool && tool.handler) {
-//           return await tool.handler(args);
-//         }
+        if (tool && tool.handler) {
+          return await tool.handler(args);
+        }
         
-//         // Tool not found
-//         return {
-//           error: {
-//             code: -32601,
-//             message: `Tool not found: ${name}`
-//           }
-//         };
-//       } catch (error) {
-//         console.error(`Error in tools/call:`, error);
-//         return {
-//           error: {
-//             code: -32603,
-//             message: `Error processing tool call: ${error.message}`
-//           }
-//         };
-//       }
-//     }
+        // Tool not found
+        return {
+          error: {
+            code: -32601,
+            message: `Tool not found: ${name}`
+          }
+        };
+      } catch (error) {
+        console.error(`Error in tools/call:`, error);
+        return {
+          error: {
+            code: -32603,
+            message: `Error processing tool call: ${error.message}`
+          }
+        };
+      }
+    }
     
-//     // For any other method, return method not found
-//     return {
-//       error: {
-//         code: -32601,
-//         message: `Method not found: ${method}`
-//       }
-//     };
-//   } catch (error) {
-//     console.error(`Error in fallbackRequestHandler:`, error);
-//     return {
-//       error: {
-//         code: -32603,
-//         message: `Error processing request: ${error.message}`
-//       }
-//     };
-//   }
-// };
+    // For any other method, return method not found
+    return {
+      error: {
+        code: -32601,
+        message: `Method not found: ${method}`
+      }
+    };
+  } catch (error) {
+    console.error(`Error in fallbackRequestHandler:`, error);
+    return {
+      error: {
+        code: -32603,
+        message: `Error processing request: ${error.message}`
+      }
+    };
+  }
+};
 
 // // Make the script executable
 // process.on('SIGTERM', () => {
