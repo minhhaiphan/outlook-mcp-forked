@@ -57,7 +57,9 @@ const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_
 server.fallbackRequestHandler = async (request) => {
   try {
     const { method, params, id } = request;
+    console.error(`=== FALLBACK HANDLER CALLED ===`);
     console.error(`REQUEST: ${method} [${id}]`);
+    console.error(`Full request:`, JSON.stringify(request, null, 2));
     
     // Initialize handler
     if (method === "initialize") {
@@ -159,9 +161,27 @@ server.fallbackRequestHandler = async (request) => {
 //   });
 
 
-// Don't register individual tools - let fallbackRequestHandler handle everything
-console.error('Tools will be handled by fallbackRequestHandler');
-console.error(`Available tools: ${TOOLS.map(t => t.name).join(', ')}`);
+// Register tools using server.tool() - this is the correct approach for the MCP SDK
+for (const tool of TOOLS) {
+  if (!tool?.name || !tool?.handler) continue;
+
+  console.error(`Registering tool: ${tool.name}`);
+  
+  // The MCP SDK tool handler signature: (request, extra) => result
+  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (request, extra) => {
+    console.error(`=== Tool Call: ${tool.name} ===`);
+    console.error('Tool request:', JSON.stringify(request, null, 2));
+    console.error('Tool extra:', JSON.stringify(extra, null, 2));
+    
+    // The parameters should be in the request object directly
+    const args = request || {};
+    console.error('Using request as args:', JSON.stringify(args, null, 2));
+    
+    return await tool.handler(args);
+  });
+}
+
+console.error(`Registered ${TOOLS.length} tools: ${TOOLS.map(t => t.name).join(', ')}`);
 
 // ---- HTTP transport (NEW) ----
 const PORT = Number(process.env.PORT || process.env.MCP_HTTP_PORT || 3001);
