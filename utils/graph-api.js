@@ -175,7 +175,7 @@ async function callGraphAPIPaginated(accessToken, method, path, queryParams = {}
   try {
     do {
       // Make API call
-      const response = await callGraphAPI(accessToken, method, currentUrl, null, currentParams);
+      const response = await callGraphAPIWithRefresh(accessToken, method, currentUrl, null, currentParams);
       
       // Add items from this page
       if (response.value && Array.isArray(response.value)) {
