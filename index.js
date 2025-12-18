@@ -162,18 +162,33 @@ const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_
 for (const tool of TOOLS) {
   if (!tool?.name || !tool?.handler) continue;
 
-  // McpServer.tool() - different signature, handler receives a request object
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (request) => {
+  // McpServer.tool() - the handler might receive parameters directly
+  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (args) => {
     console.log(`=== Tool Call: ${tool.name} ===`);
-    console.log('Tool request received:', JSON.stringify(request, null, 2));
-    console.log('Request params:', JSON.stringify(request?.params, null, 2));
-    console.log('Request arguments:', JSON.stringify(request?.params?.arguments, null, 2));
+    console.log('Handler args received directly:', JSON.stringify(args, null, 2));
+    console.log('Args type:', typeof args);
+    console.log('Args keys:', Object.keys(args || {}));
     
-    // Extract parameters from the request
-    const args = request?.params?.arguments || {};
-    console.log('Extracted args for handler:', JSON.stringify(args, null, 2));
+    // Check if the args are in the right format already
+    if (args && typeof args === 'object' && !args.signal && !args.requestId) {
+      // These look like actual tool parameters
+      console.log('Using args directly as they appear to be tool parameters');
+      return await tool.handler(args);
+    }
     
-    return await tool.handler(args);
+    // If args contain server metadata, try to find the actual parameters
+    console.log('Args appear to be server metadata, searching for actual parameters...');
+    let actualParams = {};
+    
+    // Check various possible locations for parameters
+    if (args.arguments) actualParams = args.arguments;
+    else if (args.params && args.params.arguments) actualParams = args.params.arguments;
+    else if (args.input) actualParams = args.input;
+    else if (args.data) actualParams = args.data;
+    
+    console.log('Found actual parameters:', JSON.stringify(actualParams, null, 2));
+    
+    return await tool.handler(actualParams);
   });
 }
 
