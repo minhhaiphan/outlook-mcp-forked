@@ -12,7 +12,7 @@ const { ensureAuthenticated } = require('../auth');
  */
 async function handleCreateDraft(args) {
   const { to, cc, bcc, subject, body, importance = 'normal' } = args;
-  
+  console.log(subject, body, "args");
   // At least one of subject or body should be provided for a meaningful draft
   if (!subject && !body) {
     return {
@@ -80,7 +80,19 @@ async function handleCreateDraft(args) {
     }
     
     // Make API call to create draft in drafts folder
+    console.log('About to call Graph API with:', {
+      method: 'POST',
+      endpoint: 'me/mailFolders/drafts/messages',
+      payload: draftObject
+    });
+    
     const result = await callGraphAPI(accessToken, 'POST', 'me/mailFolders/drafts/messages', draftObject);
+    
+    console.log('Graph API call completed successfully, result:', {
+      id: result.id,
+      subject: result.subject,
+      isDraft: result.isDraft
+    });
     
     // Format success message
     let recipientInfo = '';

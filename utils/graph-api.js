@@ -47,7 +47,10 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
   }
 
   try {
-    console.error(`Making real API call: ${method} ${path}`);
+    console.error(`[GRAPH-API] Making real API call: ${method} ${path}`);
+    if (data) {
+      console.error(`[GRAPH-API] Request payload:`, JSON.stringify(data, null, 2));
+    }
     
     // Check if path already contains the full URL (from nextLink)
     let finalUrl;
