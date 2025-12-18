@@ -11,7 +11,7 @@ class TokenStorage {
       clientId: process.env.MS_CLIENT_ID,
       clientSecret: process.env.MS_CLIENT_SECRET,
       redirectUri: process.env.MS_REDIRECT_URI || 'http://localhost:3333/auth/callback',
-      scopes: config.AUTH_CONFIG.scopes,
+      scopes: config.scopes,
       tokenEndpoint: process.env.MS_TOKEN_ENDPOINT || 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
       refreshTokenBuffer: 5 * 60 * 1000, // 5 minutes buffer for token refresh
       ...config // Allow overriding default config
