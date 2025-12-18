@@ -159,39 +159,9 @@ server.fallbackRequestHandler = async (request) => {
 //   });
 
 
-// Register tools from your existing TOOL definitions
-for (const tool of TOOLS) {
-  if (!tool?.name || !tool?.handler) continue;
-
-  // McpServer.tool() - the handler might receive parameters directly
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (args) => {
-    console.log(`=== Tool Call: ${tool.name} ===`);
-    console.log('Handler args received directly:', JSON.stringify(args, null, 2));
-    console.log('Args type:', typeof args);
-    console.log('Args keys:', Object.keys(args || {}));
-    
-    // Check if the args are in the right format already
-    if (args && typeof args === 'object' && !args.signal && !args.requestId) {
-      // These look like actual tool parameters
-      console.log('Using args directly as they appear to be tool parameters');
-      return await tool.handler(args);
-    }
-    
-    // If args contain server metadata, try to find the actual parameters
-    console.log('Args appear to be server metadata, searching for actual parameters...');
-    let actualParams = {};
-    
-    // Check various possible locations for parameters
-    if (args.arguments) actualParams = args.arguments;
-    else if (args.params && args.params.arguments) actualParams = args.params.arguments;
-    else if (args.input) actualParams = args.input;
-    else if (args.data) actualParams = args.data;
-    
-    console.log('Found actual parameters:', JSON.stringify(actualParams, null, 2));
-    
-    return await tool.handler(actualParams);
-  });
-}
+// Don't register individual tools - let fallbackRequestHandler handle everything
+console.error('Tools will be handled by fallbackRequestHandler');
+console.error(`Available tools: ${TOOLS.map(t => t.name).join(', ')}`);
 
 // ---- HTTP transport (NEW) ----
 const PORT = Number(process.env.PORT || process.env.MCP_HTTP_PORT || 3001);
