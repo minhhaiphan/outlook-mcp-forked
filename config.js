@@ -12,6 +12,11 @@ const tokenPath =
   process.env.OUTLOOK_TOKEN_PATH ||
   path.join(homeDir, '.outlook-mcp-tokens.json');
 
+ const SCOPES = (
+    process.env.MS_SCOPES ||
+    'offline_access openid profile email User.Read Mail.Read Calendars.Read Calendars.ReadWrite Contacts.Read'
+  ).split(' ');
+
 module.exports = {
   // Server information
   SERVER_NAME: "outlook-assistant",
@@ -19,11 +24,6 @@ module.exports = {
   
   // Test mode setting
   USE_TEST_MODE: process.env.USE_TEST_MODE === 'true',
-  
-  const SCOPES = (
-    process.env.MS_SCOPES ||
-    'offline_access openid profile email User.Read Mail.Read Calendars.Read Calendars.ReadWrite Contacts.Read'
-  ).split(' ');
 
   // Authentication configuration
   AUTH_CONFIG: {
