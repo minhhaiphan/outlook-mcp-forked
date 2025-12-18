@@ -20,12 +20,17 @@ module.exports = {
   // Test mode setting
   USE_TEST_MODE: process.env.USE_TEST_MODE === 'true',
   
+  const SCOPES = (
+    process.env.MS_SCOPES ||
+    'offline_access openid profile email User.Read Mail.Read Calendars.Read Calendars.ReadWrite Contacts.Read'
+  ).split(' ');
+
   // Authentication configuration
   AUTH_CONFIG: {
     clientId: process.env.MS_CLIENT_ID || process.env.OUTLOOK_CLIENT_ID,
     clientSecret: process.env.MS_CLIENT_SECRET || process.env.OUTLOOK_CLIENT_SECRET,
     redirectUri: 'http://localhost:3333/auth/callback',
-    scopes: ['Mail.Read', 'Mail.ReadWrite', 'User.Read', 'Contacts.Read', 'Calendars.Read', 'Calendars.ReadWrite'],
+    scopes: SCOPES,
     tokenStorePath: tokenPath,
     authServerUrl: 'http://localhost:3333'
   },
