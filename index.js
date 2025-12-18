@@ -162,14 +162,18 @@ const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_
 for (const tool of TOOLS) {
   if (!tool?.name || !tool?.handler) continue;
 
-  // McpServer.tool(name, description, inputSchema, handler)
-  // The MCP SDK passes parameters as the first argument, context as second
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (args, context) => {
+  // McpServer.tool() - different signature, handler receives a request object
+  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (request) => {
     console.log(`=== Tool Call: ${tool.name} ===`);
-    console.log('Tool args received:', JSON.stringify(args, null, 2));
-    console.log('Tool context received:', JSON.stringify(context, null, 2));
+    console.log('Tool request received:', JSON.stringify(request, null, 2));
+    console.log('Request params:', JSON.stringify(request?.params, null, 2));
+    console.log('Request arguments:', JSON.stringify(request?.params?.arguments, null, 2));
     
-    return await tool.handler(args || {});
+    // Extract parameters from the request
+    const args = request?.params?.arguments || {};
+    console.log('Extracted args for handler:', JSON.stringify(args, null, 2));
+    
+    return await tool.handler(args);
   });
 }
 
