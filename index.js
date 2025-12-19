@@ -96,7 +96,7 @@ server.fallbackRequestHandler = async (request) => {
     // Required empty responses for other capabilities
     if (method === "resources/list") return { resources: [] };
     if (method === "prompts/list") return { prompts: [] };
-    
+    console.log(method, "method")
     // Tool call handler
     if (method === "tools/call") {
       try {
