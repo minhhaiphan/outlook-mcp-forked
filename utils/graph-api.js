@@ -16,30 +16,17 @@ const tokenStorage = new TokenStorage({
 });
 
 
-async function callGraphAPIWithRefresh(accessToken, method, path, data=null, queryParams={}) {
-  try {
-    return await callGraphAPI(accessToken, method, path, data, queryParams);
-  } catch (err) {
-    if (err.statusCode === 401) {
-      console.error('[AUTH] 401 from Graph, attempting refresh + retry once...');
-      const fresh = await tokenStorage.getValidAccessToken(); // this triggers refresh if expired
-      if (!fresh) throw new Error('UNAUTHORIZED'); // refresh failed or no refresh_token
-      return await callGraphAPI(fresh, method, path, data, queryParams);
-    }
-    throw err;
-  }
-}
-
 /**
- * Makes a request to the Microsoft Graph API
+ * Makes a request to the Microsoft Graph API with automatic token refresh
  * @param {string} accessToken - The access token for authentication
  * @param {string} method - HTTP method (GET, POST, etc.)
  * @param {string} path - API endpoint path
  * @param {object} data - Data to send for POST/PUT requests
  * @param {object} queryParams - Query parameters
+ * @param {boolean} _isRetry - Internal flag to prevent infinite recursion
  * @returns {Promise<object>} - The API response
  */
-async function callGraphAPI(accessToken, method, path, data = null, queryParams = {}) {
+async function callGraphAPI(accessToken, method, path, data = null, queryParams = {}, _isRetry = false) {
   // For test tokens, we'll simulate the API call
   if (config.USE_TEST_MODE && accessToken.startsWith('test_access_token_')) {
     console.error(`TEST MODE: Simulating ${method} ${path} API call`);
@@ -118,7 +105,7 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
           responseData += chunk;
         });
         
-        res.on('end', () => {
+        res.on('end', async () => {
           if (res.statusCode >= 200 && res.statusCode < 300) {
             try {
               responseData = responseData ? responseData : '{}';
@@ -127,13 +114,27 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
             } catch (error) {
               reject(new Error(`Error parsing API response: ${error.message}`));
             }
-          } else if (res.statusCode === 401) {
-            // Token expired or invalid
+          } else if (res.statusCode === 401 && !_isRetry) {
+            // Token expired or invalid - attempt refresh and retry once
+            console.error('[AUTH] 401 from Graph, attempting refresh + retry once...');
             console.error("401 body:", responseData);
-            const err = new Error("UNAUTHORIZED");
-            err.statusCode = 401;
-            err.body = responseData;
-            reject(err);
+            
+            try {
+              const fresh = await tokenStorage.getValidAccessToken(); // this triggers refresh if expired
+              if (!fresh) {
+                reject(new Error('UNAUTHORIZED: refresh failed or no refresh_token'));
+                return;
+              }
+              // Retry with fresh token
+              const retryResult = await callGraphAPI(fresh, method, path, data, queryParams, true);
+              resolve(retryResult);
+            } catch (refreshError) {
+              console.error('[AUTH] Token refresh failed:', refreshError);
+              const err = new Error("UNAUTHORIZED");
+              err.statusCode = 401;
+              err.body = responseData;
+              reject(err);
+            }
           } else {
             reject(new Error(`API call failed with status ${res.statusCode}: ${responseData}`));
           }
@@ -152,6 +153,20 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
     });
   } catch (error) {
     console.error('Error calling Graph API:', error);
+    
+    // If this is a 401 error from the try block and we haven't retried yet, attempt refresh
+    if (error.statusCode === 401 && !_isRetry) {
+      console.error('[AUTH] 401 error caught, attempting refresh + retry once...');
+      try {
+        const fresh = await tokenStorage.getValidAccessToken();
+        if (!fresh) throw new Error('UNAUTHORIZED: refresh failed or no refresh_token');
+        return await callGraphAPI(fresh, method, path, data, queryParams, true);
+      } catch (refreshError) {
+        console.error('[AUTH] Token refresh failed:', refreshError);
+        throw new Error('UNAUTHORIZED');
+      }
+    }
+    
     throw error;
   }
 }
@@ -177,8 +192,8 @@ async function callGraphAPIPaginated(accessToken, method, path, queryParams = {}
 
   try {
     do {
-      // Make API call
-      const response = await callGraphAPIWithRefresh(accessToken, method, currentUrl, null, currentParams);
+      // Make API call - now uses callGraphAPI with automatic refresh
+      const response = await callGraphAPI(accessToken, method, currentUrl, null, currentParams);
       
       // Add items from this page
       if (response.value && Array.isArray(response.value)) {
