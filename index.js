@@ -121,13 +121,13 @@ server.fallbackRequestHandler = async (request) => {
         // };
         const p = params || {};
         const name = p.name;
-      
+        console.log(params, "params")
         // tolerate multiple client shapes
         const args =
-          p.arguments ??
-          p.input ??
-          p.params?.arguments ??
-          p.params?.input ??
+          params?.arguments ??
+          params?.input ??
+          params?.params?.arguments ??
+          params?.params?.input ??
           {};
       
         console.error("TOOLS/CALL name:", name);
