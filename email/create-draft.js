@@ -66,9 +66,9 @@ async function handleCreateDraft(args) {
         content: body || ''
       },
       importance,
-      isDraft: true
+      // isDraft: true
     };
-    
+    console.log('draftObject', draftObject);
     // Only add recipients if they exist
     if (toRecipients.length > 0) {
       draftObject.toRecipients = toRecipients;

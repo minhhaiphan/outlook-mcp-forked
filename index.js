@@ -232,7 +232,7 @@ for (const tool of TOOLS) {
       console.error('No parameters found - using test data for create-draft');
       params = {
         subject: 'hello',
-        body: { "contentType": "Text", "content": "this is body" },
+        body: 'this is body',
         to: 'hai@vggate.com'
       };
     }
