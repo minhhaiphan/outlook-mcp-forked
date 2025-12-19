@@ -21,6 +21,7 @@ const AUTH_CONFIG = {
     'offline_access',
     'User.Read',
     'Mail.Read',
+    'Mail.ReadWrite',
     'Calendars.Read',
     'Calendars.ReadWrite',
     'Contacts.Read'

@@ -14,7 +14,7 @@ const tokenPath =
 
  const SCOPES = (
     process.env.MS_SCOPES ||
-    'offline_access openid profile email User.Read Mail.Read Calendars.Read Calendars.ReadWrite Contacts.Read'
+    'offline_access openid profile email User.Read Mail.Read Mail.ReadWrite Calendars.Read Calendars.ReadWrite Contacts.Read'
   ).split(' ');
 
 module.exports = {
