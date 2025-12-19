@@ -14,7 +14,7 @@ const tokenStorage = new TokenStorage({
   scopes: config.AUTH_CONFIG.scopes,
   redirectUri: config.AUTH_CONFIG.redirectUri,
 });
-console.log(tokenStorage, "tokenStorage")
+
 
 async function callGraphAPIWithRefresh(accessToken, method, path, data=null, queryParams={}) {
   try {

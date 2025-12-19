@@ -11,9 +11,8 @@ const url = require("url");
 
 // const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
-
 const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
-// const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
+
 const config = require('./config');
 
 // Import module tools
