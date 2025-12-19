@@ -85,11 +85,13 @@ async function handleCreateDraft(args) {
     // Make API call to create draft in drafts folder
     console.log('About to call Graph API with:', {
       method: 'POST',
-      endpoint: 'me/mailFolders/drafts/messages',
+      // endpoint: 'me/mailFolders/drafts/messages',
+      endpoint: 'me/messages',
       payload: draftObject
     });
     
-    const result = await callGraphAPI(accessToken, 'POST', 'me/mailFolders/drafts/messages', draftObject);
+    // const result = await callGraphAPI(accessToken, 'POST', 'me/mailFolders/drafts/messages', draftObject);
+    const result = await callGraphAPI(accessToken, 'POST', 'me/messages', draftObject);
     
     console.log('Graph API call completed successfully, result:', {
       id: result.id,

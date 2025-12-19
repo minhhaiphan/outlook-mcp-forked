@@ -227,15 +227,15 @@ for (const tool of TOOLS) {
       }
     }
     
-    // TEMPORARY WORKAROUND: If no parameters found and this is create-draft, use test data
-    if (Object.keys(params).length === 0 && tool.name === 'create-draft') {
-      console.error('No parameters found - using test data for create-draft');
-      params = {
-        subject: 'hello',
-        body: 'this is body',
-        to: 'hai@vggate.com'
-      };
-    }
+    // // TEMPORARY WORKAROUND: If no parameters found and this is create-draft, use test data
+    // if (Object.keys(params).length === 0 && tool.name === 'create-draft') {
+    //   console.error('No parameters found - using test data for create-draft');
+    //   params = {
+    //     subject: 'hello',
+    //     body: 'this is body',
+    //     to: 'hai@vggate.com'
+    //   };
+    // }
     
     console.error('Final params to pass to handler:', JSON.stringify(params, null, 2));
     
