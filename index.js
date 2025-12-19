@@ -9,10 +9,10 @@
 const http = require("http");
 const url = require("url");
 
-const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
+// const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
 const { StreamableHTTPServerTransport } = require("@modelcontextprotocol/sdk/server/streamableHttp.js");
 
-// const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
+const { Server } = require("@modelcontextprotocol/sdk/server/index.js");
 // const { StdioServerTransport } = require("@modelcontextprotocol/sdk/server/stdio.js");
 const config = require('./config');
 
@@ -38,20 +38,20 @@ const TOOLS = [
 ];
 
 // Create server with tools capabilities
-// const server = new Server(
-//   { name: config.SERVER_NAME, version: config.SERVER_VERSION },
-//   { 
-//     capabilities: { 
-//       tools: TOOLS.reduce((acc, tool) => {
-//         acc[tool.name] = {};
-//         return acc;
-//       }, {})
-//     } 
-//   }
-// );
+const server = new Server(
+  { name: config.SERVER_NAME, version: config.SERVER_VERSION },
+  { 
+    capabilities: { 
+      tools: TOOLS.reduce((acc, tool) => {
+        acc[tool.name] = {};
+        return acc;
+      }, {})
+    } 
+  }
+);
 
 // ---- MCP server (NEW: use McpServer and register tools) ----
-const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_VERSION });
+// const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_VERSION });
 
 
 // Handle all requests using fallback handler
@@ -187,61 +187,52 @@ console.error('Using server.tool() registrations only, no fallback handler');
 
 
 // Register tools using server.tool() - this is the correct approach for the MCP SDK
-for (const tool of TOOLS) {
-  if (!tool?.name || !tool?.handler) continue;
+// for (const tool of TOOLS) {
+//   if (!tool?.name || !tool?.handler) continue;
 
-  console.error(`Registering tool: ${tool.name}`);
+//   console.error(`Registering tool: ${tool.name}`);
   
-  // The MCP SDK tool handler might use different signatures
-  server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (...allArgs) => {
-    console.error(`=== Tool Call: ${tool.name} ===`);
-    console.error('All arguments received:');
-    allArgs.forEach((arg, index) => {
-      console.error(`Arg ${index}:`, JSON.stringify(arg, null, 2));
-    });
+//   // The MCP SDK tool handler might use different signatures
+//   server.tool(tool.name, tool.description || "", tool.inputSchema || {}, async (...allArgs) => {
+//     console.error(`=== Tool Call: ${tool.name} ===`);
+//     console.error('All arguments received:');
+//     allArgs.forEach((arg, index) => {
+//       console.error(`Arg ${index}:`, JSON.stringify(arg, null, 2));
+//     });
     
-    // Try to find the actual parameters in different locations
-    let params = {};
+//     // Try to find the actual parameters in different locations
+//     let params = {};
     
-    // Check each argument for tool parameters
-    for (let i = 0; i < allArgs.length; i++) {
-      const arg = allArgs[i];
-      if (arg && typeof arg === 'object') {
-        // Look for properties that look like tool parameters
-        if (arg.subject || arg.body || arg.to) {
-          console.error(`Found tool parameters in arg ${i}:`, arg);
-          params = arg;
-          break;
-        }
-        // Check if parameters are nested
-        if (arg.arguments && typeof arg.arguments === 'object') {
-          console.error(`Found nested parameters in arg ${i}.arguments:`, arg.arguments);
-          params = arg.arguments;
-          break;
-        }
-        if (arg.params && typeof arg.params === 'object') {
-          console.error(`Found nested parameters in arg ${i}.params:`, arg.params);
-          params = arg.params;
-          break;
-        }
-      }
-    }
+//     // Check each argument for tool parameters
+//     for (let i = 0; i < allArgs.length; i++) {
+//       const arg = allArgs[i];
+//       if (arg && typeof arg === 'object') {
+//         // Look for properties that look like tool parameters
+//         if (arg.subject || arg.body || arg.to) {
+//           console.error(`Found tool parameters in arg ${i}:`, arg);
+//           params = arg;
+//           break;
+//         }
+//         // Check if parameters are nested
+//         if (arg.arguments && typeof arg.arguments === 'object') {
+//           console.error(`Found nested parameters in arg ${i}.arguments:`, arg.arguments);
+//           params = arg.arguments;
+//           break;
+//         }
+//         if (arg.params && typeof arg.params === 'object') {
+//           console.error(`Found nested parameters in arg ${i}.params:`, arg.params);
+//           params = arg.params;
+//           break;
+//         }
+//       }
+//     }
     
-    // TEMPORARY WORKAROUND: If no parameters found and this is create-draft, use test data
-    // if (Object.keys(params).length === 0 && tool.name === 'create-draft') {
-    //   console.error('No parameters found - using test data for create-draft');
-    //   params = {
-    //     subject: 'hello',
-    //     body: 'this is body',
-    //     to: 'hai@vggate.com'
-    //   };
-    // }
+
+//     console.error('Final params to pass to handler:', JSON.stringify(params, null, 2));
     
-    console.error('Final params to pass to handler:', JSON.stringify(params, null, 2));
-    
-    return await tool.handler(params);
-  });
-}
+//     return await tool.handler(params);
+//   });
+// }
 
 console.error(`Registered ${TOOLS.length} tools: ${TOOLS.map(t => t.name).join(', ')}`);
 
