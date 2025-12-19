@@ -11,25 +11,11 @@ const { ensureAuthenticated } = require('../auth');
  * @returns {object} - MCP response
  */
 async function handleCreateDraft(args) {
-  // Log the full args object to debug parameter passing
-  console.log('=== DEBUG CREATE DRAFT ===');
-  console.log('Full args object received:', JSON.stringify(args, null, 2));
-  console.log('Args keys:', Object.keys(args || {}));
-  console.log('Args type:', typeof args);
+  console.log('=== CREATE DRAFT HANDLER ===');
+  console.log('Args received:', JSON.stringify(args, null, 2));
   
-  // Try different possible structures
-  let actualArgs = args;
-  if (args && args.arguments) {
-    console.log('Found args.arguments:', args.arguments);
-    actualArgs = args.arguments;
-  }
-  if (args && args.params) {
-    console.log('Found args.params:', args.params);
-    actualArgs = args.params;
-  }
-  
-  const { to, cc, bcc, subject, body, importance = 'normal' } = actualArgs || {};
-  console.log('Extracted parameters:', { to, cc, bcc, subject, body, importance });
+  const { to, cc, bcc, subject, body, importance = 'normal' } = args || {};
+  console.log('Extracted:', { to, cc, bcc, subject, body, importance });
   // At least one of subject or body should be provided for a meaningful draft
   if (!subject && !body) {
     return {

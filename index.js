@@ -53,6 +53,121 @@ const TOOLS = [
 // ---- MCP server (NEW: use McpServer and register tools) ----
 const server = new McpServer({ name: config.SERVER_NAME, version: config.SERVER_VERSION });
 
+
+// Handle all requests using fallback handler
+server.fallbackRequestHandler = async (request) => {
+  console.error("RAW REQUEST:", JSON.stringify(request, null, 2));
+  try {
+    const { method, params, id } = request;
+    console.error(`=== FALLBACK HANDLER CALLED ===`);
+    console.error(`REQUEST: ${method} [${id}]`);
+    console.error(`Full request:`, JSON.stringify(request, null, 2));
+    
+    // Initialize handler
+    if (method === "initialize") {
+      console.error(`INITIALIZE REQUEST: ID [${id}]`);
+      return {
+        protocolVersion: "2024-11-05",
+        capabilities: { 
+          tools: TOOLS.reduce((acc, tool) => {
+            acc[tool.name] = {};
+            return acc;
+          }, {})
+        },
+        serverInfo: { name: config.SERVER_NAME, version: config.SERVER_VERSION }
+      };
+    }
+    
+    // Tools list handler
+    if (method === "tools/list") {
+      console.error(`TOOLS LIST REQUEST: ID [${id}]`);
+      console.error(`TOOLS COUNT: ${TOOLS.length}`);
+      console.error(`TOOLS NAMES: ${TOOLS.map(t => t.name).join(', ')}`);
+      
+      return {
+        tools: TOOLS.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          inputSchema: tool.inputSchema
+        }))
+      };
+    }
+    
+    // Required empty responses for other capabilities
+    if (method === "resources/list") return { resources: [] };
+    if (method === "prompts/list") return { prompts: [] };
+    
+    // Tool call handler
+    if (method === "tools/call") {
+      try {
+        // const { name, arguments: args = {} } = params || {};
+        
+        // console.error(`TOOL CALL: ${name}`);
+        // console.error(`TOOL ARGS:`, JSON.stringify(args, null, 2));
+        
+        // // Find the tool handler
+        // const tool = TOOLS.find(t => t.name === name);
+        
+        // if (tool && tool.handler) {
+        //   return await tool.handler(args);
+        // }
+        
+        // // Tool not found
+        // return {
+        //   error: {
+        //     code: -32601,
+        //     message: `Tool not found: ${name}`
+        //   }
+        // };
+        const p = params || {};
+        const name = p.name;
+      
+        // tolerate multiple client shapes
+        const args =
+          p.arguments ??
+          p.input ??
+          p.params?.arguments ??
+          p.params?.input ??
+          {};
+      
+        console.error("TOOLS/CALL name:", name);
+        console.error("TOOLS/CALL args:", JSON.stringify(args, null, 2));
+      
+        const tool = TOOLS.find(t => t.name === name);
+        if (!tool?.handler) {
+          return { error: { code: -32601, message: `Tool not found: ${name}` } };
+        }
+        return await tool.handler(args);
+      } catch (error) {
+        console.error(`Error in tools/call:`, error);
+        return {
+          error: {
+            code: -32603,
+            message: `Error processing tool call: ${error.message}`
+          }
+        };
+      }
+    }
+    
+    // For any other method, return method not found
+    return {
+      error: {
+        code: -32601,
+        message: `Method not found: ${method}`
+      }
+    };
+  } catch (error) {
+    console.error(`Error in fallbackRequestHandler:`, error);
+    return {
+      error: {
+        code: -32603,
+        message: `Error processing request: ${error.message}`
+      }
+    };
+  }
+};
+
+
 // Disable fallback handler to let server.tool() registrations handle everything
 console.error('Using server.tool() registrations only, no fallback handler');
 
