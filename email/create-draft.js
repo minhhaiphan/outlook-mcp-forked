@@ -5,6 +5,9 @@ const config = require('../config');
 const { callGraphAPI } = require('../utils/graph-api');
 const { ensureAuthenticated } = require('../auth');
 
+// Direct TokenStorage import to bypass caching issues
+const TokenStorage = require('../auth/token-storage');
+
 /**
  * Create email draft handler
  * @param {object} args - Tool arguments
@@ -27,8 +30,33 @@ async function handleCreateDraft(args) {
   }
   
   try {
-    // Get access token
-    const accessToken = await ensureAuthenticated();
+    // Get access token with fallback to direct TokenStorage
+    let accessToken;
+    
+    try {
+      console.log('[CREATE-DRAFT] Attempting ensureAuthenticated()...');
+      accessToken = await ensureAuthenticated();
+      console.log('[CREATE-DRAFT] ensureAuthenticated() succeeded');
+    } catch (authError) {
+      console.log('[CREATE-DRAFT] ensureAuthenticated() failed, trying direct TokenStorage...', authError.message);
+      
+      // Fallback: Use TokenStorage directly (bypasses caching issues)
+      const tokenStorage = new TokenStorage({
+        tokenStorePath: config.AUTH_CONFIG.tokenStorePath,
+        clientId: config.AUTH_CONFIG.clientId,
+        clientSecret: config.AUTH_CONFIG.clientSecret,
+        tokenEndpoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/token',
+        scopes: config.AUTH_CONFIG.scopes,
+        redirectUri: config.AUTH_CONFIG.redirectUri,
+      });
+      
+      accessToken = await tokenStorage.getValidAccessToken();
+      
+      if (!accessToken) {
+        throw new Error('Authentication required');
+      }
+      console.log('[CREATE-DRAFT] Direct TokenStorage succeeded');
+    }
     
     // Format recipients (optional for drafts)
     const toRecipients = to ? to.split(',').map(email => {
