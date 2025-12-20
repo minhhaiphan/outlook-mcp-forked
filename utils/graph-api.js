@@ -120,17 +120,29 @@ async function callGraphAPI(accessToken, method, path, data = null, queryParams 
             console.error("401 body:", responseData);
             
             try {
+              console.error('[AUTH] Calling tokenStorage.getValidAccessToken() to refresh...');
               const fresh = await tokenStorage.getValidAccessToken(); // this triggers refresh if expired
+              console.error(`[AUTH] getValidAccessToken() result: ${fresh ? 'SUCCESS - got fresh token' : 'FAILED - no token returned'}`);
+              
               if (!fresh) {
+                console.error('[AUTH] No fresh token available - refresh failed or no refresh_token');
                 reject(new Error('UNAUTHORIZED: refresh failed or no refresh_token'));
                 return;
               }
+              
+              console.error('[AUTH] Retrying API call with fresh token...');
               // Retry with fresh token
               const retryResult = await callGraphAPI(fresh, method, path, data, queryParams, true);
+              console.error('[AUTH] Retry successful!');
               resolve(retryResult);
             } catch (refreshError) {
-              console.error('[AUTH] Token refresh failed:', refreshError);
-              const err = new Error("UNAUTHORIZED");
+              console.error('[AUTH] Token refresh failed with error:', refreshError);
+              console.error('[AUTH] Refresh error details:', {
+                message: refreshError.message,
+                stack: refreshError.stack,
+                name: refreshError.name
+              });
+              const err = new Error(`UNAUTHORIZED: ${refreshError.message}`);
               err.statusCode = 401;
               err.body = responseData;
               reject(err);

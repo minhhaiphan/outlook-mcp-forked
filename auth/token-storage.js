@@ -82,46 +82,66 @@ class TokenStorage {
   }
 
   async getValidAccessToken() {
+    console.log('[TOKEN-STORAGE] getValidAccessToken() called');
     await this.getTokens(); // Ensure tokens are loaded
 
     if (!this.tokens || !this.tokens.access_token) {
-      console.log('No access token available.');
+      console.log('[TOKEN-STORAGE] No access token available.');
       return null;
     }
 
+    console.log(`[TOKEN-STORAGE] Token check - expires_at: ${this.tokens.expires_at}, current time: ${Date.now()}, expired: ${this.isTokenExpired()}`);
+
     if (this.isTokenExpired()) {
-      console.log('Access token expired or nearing expiration. Attempting refresh.');
+      console.log('[TOKEN-STORAGE] Access token expired or nearing expiration. Attempting refresh.');
       if (this.tokens.refresh_token) {
+        console.log('[TOKEN-STORAGE] Refresh token available, calling refreshAccessToken()');
         try {
-          return await this.refreshAccessToken();
+          const result = await this.refreshAccessToken();
+          console.log('[TOKEN-STORAGE] refreshAccessToken() completed successfully');
+          return result;
         } catch (refreshError) {
-          console.error('Failed to refresh access token:', refreshError);
+          console.error('[TOKEN-STORAGE] Failed to refresh access token:', refreshError);
+          console.error('[TOKEN-STORAGE] Refresh error details:', {
+            message: refreshError.message,
+            stack: refreshError.stack,
+            name: refreshError.name
+          });
           this.tokens = null; // Invalidate tokens on refresh failure
           await this._saveTokensToFile(); // Persist invalidation
           return null;
         }
       } else {
-        console.warn('No refresh token available. Cannot refresh access token.');
+        console.warn('[TOKEN-STORAGE] No refresh token available. Cannot refresh access token.');
         this.tokens = null; // Invalidate tokens as they are expired and cannot be refreshed
         await this._saveTokensToFile(); // Persist invalidation
         return null;
       }
     }
+    console.log('[TOKEN-STORAGE] Token is still valid, returning existing access token');
     return this.tokens.access_token;
   }
 
   async refreshAccessToken() {
+    console.log('[TOKEN-STORAGE] refreshAccessToken() called');
+    
     if (!this.tokens || !this.tokens.refresh_token) {
+      console.error('[TOKEN-STORAGE] No refresh token available');
       throw new Error('No refresh token available to refresh the access token.');
     }
 
     // Prevent multiple concurrent refresh attempts
     if (this._refreshPromise) {
-        console.log("Refresh already in progress, returning existing promise.");
+        console.log("[TOKEN-STORAGE] Refresh already in progress, returning existing promise.");
         return this._refreshPromise.then(tokens => tokens.access_token);
     }
 
-    console.log('Attempting to refresh access token...');
+    console.log('[TOKEN-STORAGE] Attempting to refresh access token...');
+    console.log(`[TOKEN-STORAGE] Using refresh token: ${this.tokens.refresh_token.substring(0, 20)}...`);
+    console.log(`[TOKEN-STORAGE] Token endpoint: ${this.config.tokenEndpoint}`);
+    console.log(`[TOKEN-STORAGE] Client ID: ${this.config.clientId}`);
+    console.log(`[TOKEN-STORAGE] Scopes: ${this.config.scopes.join(' ')}`);
+    
     const postData = querystring.stringify({
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,
@@ -129,6 +149,8 @@ class TokenStorage {
       refresh_token: this.tokens.refresh_token,
       scope: this.config.scopes.join(' ')
     });
+
+    console.log(`[TOKEN-STORAGE] Request payload length: ${postData.length} bytes`);
 
     const requestOptions = {
       method: 'POST',
@@ -139,38 +161,60 @@ class TokenStorage {
     };
 
     this._refreshPromise = new Promise((resolve, reject) => {
+        console.log('[TOKEN-STORAGE] Making HTTP request to token endpoint...');
         const req = https.request(this.config.tokenEndpoint, requestOptions, (res) => {
+            console.log(`[TOKEN-STORAGE] Token refresh response status: ${res.statusCode}`);
+            console.log(`[TOKEN-STORAGE] Response headers:`, res.headers);
+            
             let data = '';
             res.on('data', (chunk) => data += chunk);
             res.on('end', async () => {
+                console.log(`[TOKEN-STORAGE] Response body length: ${data.length} bytes`);
+                console.log(`[TOKEN-STORAGE] Response body: ${data}`);
+                
                 try {
                     const responseBody = JSON.parse(data);
                     if (res.statusCode >= 200 && res.statusCode < 300) {
+                        console.log('[TOKEN-STORAGE] Token refresh successful!');
+                        console.log(`[TOKEN-STORAGE] New access token: ${responseBody.access_token?.substring(0, 20)}...`);
+                        console.log(`[TOKEN-STORAGE] New refresh token provided: ${!!responseBody.refresh_token}`);
+                        console.log(`[TOKEN-STORAGE] Token expires in: ${responseBody.expires_in} seconds`);
+                        
                         this.tokens.access_token = responseBody.access_token;
                         // Microsoft Graph API refresh tokens may or may not return a new refresh_token
                         if (responseBody.refresh_token) {
+                            console.log('[TOKEN-STORAGE] Updating refresh token with new one from response');
                             this.tokens.refresh_token = responseBody.refresh_token;
+                        } else {
+                            console.log('[TOKEN-STORAGE] No new refresh token in response, keeping existing one');
                         }
                         this.tokens.expires_in = responseBody.expires_in;
                         this.tokens.expires_at = Date.now() + (responseBody.expires_in * 1000);
+                        
+                        console.log(`[TOKEN-STORAGE] New expiry time: ${new Date(this.tokens.expires_at).toISOString()}`);
+                        
                         try {
                             await this._saveTokensToFile();
-                            console.log('Access token refreshed and saved successfully.');
+                            console.log('[TOKEN-STORAGE] Access token refreshed and saved successfully.');
                             resolve(this.tokens);
                         } catch (saveError) {
-                            console.error('Failed to save refreshed tokens:', saveError);
-                            // Even if save fails, tokens are updated in memory.
-                            // Depending on desired strictness, could reject here.
-                            // For now, resolve with in-memory tokens but log critical error.
-                            // Or, to be stricter and align with re-throwing:
+                            console.error('[TOKEN-STORAGE] Failed to save refreshed tokens:', saveError);
                             reject(new Error(`Access token refreshed but failed to save: ${saveError.message}`));
                         }
                     } else {
-                        console.error('Error refreshing token:', responseBody);
-                        reject(new Error(responseBody.error_description || `Token refresh failed with status ${res.statusCode}`));
+                        console.error('[TOKEN-STORAGE] Token refresh failed with status:', res.statusCode);
+                        console.error('[TOKEN-STORAGE] Error response body:', responseBody);
+                        
+                        // Check for specific error types
+                        if (responseBody.error === 'invalid_grant') {
+                            console.error('[TOKEN-STORAGE] Refresh token is invalid/expired - user needs to re-authenticate');
+                        }
+                        
+                        reject(new Error(responseBody.error_description || responseBody.error || `Token refresh failed with status ${res.statusCode}`));
                     }
                 } catch (e) { // Catch any error during parsing or saving
-                    console.error('Error processing refresh token response or saving tokens:', e);
+                    console.error('[TOKEN-STORAGE] Error processing refresh token response or saving tokens:', e);
+                    console.error('[TOKEN-STORAGE] Raw response data:', data);
                     reject(e);
                 } finally {
                     this._refreshPromise = null; // Clear promise after completion
@@ -178,15 +222,20 @@ class TokenStorage {
             });
         });
         req.on('error', (error) => {
-            console.error('HTTP error during token refresh:', error);
+            console.error('[TOKEN-STORAGE] HTTP error during token refresh:', error);
             reject(error);
             this._refreshPromise = null; // Clear promise on error
         });
+        
+        console.log('[TOKEN-STORAGE] Writing request data and sending...');
         req.write(postData);
         req.end();
     });
 
-    return this._refreshPromise.then(tokens => tokens.access_token);
+    return this._refreshPromise.then(tokens => {
+        console.log('[TOKEN-STORAGE] Returning refreshed access token');
+        return tokens.access_token;
+    });
   }
 
 

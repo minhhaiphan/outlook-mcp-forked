@@ -78,7 +78,7 @@ async function handleSendEmail(args) {
       message: {
         subject,
         body: {
-          contentType: body.includes('<html') ? 'html' : 'text',
+          contentType: body.includes('<html') ? 'html' : 'Text',
           content: body
         },
         toRecipients,

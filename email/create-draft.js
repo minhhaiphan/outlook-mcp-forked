@@ -62,7 +62,7 @@ async function handleCreateDraft(args) {
     const draftObject = {
       subject: subject || '',
       body: {
-        contentType: (body && body.includes('<html')) ? 'html' : 'text',
+        contentType: (body && body.includes('<html')) ? 'html' : 'Text',
         content: body || ''
       },
       importance,
